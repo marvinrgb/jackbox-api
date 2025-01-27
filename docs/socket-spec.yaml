@@ -1,0 +1,294 @@
+openapi: 3.0.3
+info:
+  title: Jackbox Games Socket.io message titlesheet
+  description: Every title of all possible Socket.io messages for the Jackbox Games Communication
+  version: 0.1.0 #starker Funktionswaechsel.hinzufügen einzelner Funktionen.Bugfixes
+
+
+paths:
+  /create-lobby:
+    post:
+      tags:
+        - Display
+      summary: Creates a new lobby
+      description: API will create a lobby and send back code via lobby-creation-confirm
+      responses:
+        '200':
+          description: "[lobby-creation-confirm] On lobby creation to confirm and transfer the code"
+  /join-lobby:
+    post:
+      tags:
+        - Player
+      summary: Joins an existing lobby
+      description: API will add the player to the lobby and emit updated player data to all clients.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                  description: The lobby code to join.
+      responses:
+        '200':
+          description: "[players] On successful join, sends the current player data to all clients in the lobby"
+  /character-change:
+    post:
+      tags:
+        - Player
+      summary: Modifies the player's character properties
+      description: API will change character properties of the player and emit updated player data to all clients.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                property:
+                  type: string
+                  description: The property to change ('head', 'body', 'face', or 'accessories').
+                value:
+                  type: number
+                  description: The value to add to the property.
+      responses:
+        '200':
+          description: "[players] On character change, sends the current player data to all clients in the lobby"
+  /display/gamestart:
+    post:
+      tags:
+        - Display
+      summary: Starts a game in the lobby
+      description: API will start the specified game and emit the game start event to all clients.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                game:
+                  type: string
+                  description: The name of the game to start ('colorpicker').
+      responses:
+        '200':
+          description: "[gamestart] On game start, sends the game name to all clients in the lobby"
+  /display/game/cp/roundstart:
+    post:
+      tags:
+        - Display
+      summary: Starts a round of the colorpicker game
+      description: API will start a new round of colorpicker and send round details to all clients.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pickTime:
+                  type: number
+                  description: The time allowed for each pick in milliseconds.
+                rounds:
+                  type: number
+                  description: The number of rounds to play.
+      responses:
+          '200':
+            description: "[api/game/cp/roundstart] On round start, sends round details to all clients"
+  /player/game/cp/pick:
+    post:
+      tags:
+        - Player
+      summary: Submits a color pick for the colorpicker game
+      description: API will receive a color pick from a player and if all players have picked a color, calculates the results and sends it to all clients
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                color:
+                  type: object
+                  description: The color picked by the player, represented by an object with h, s, and l properties.
+                  properties:
+                    h:
+                      type: number
+                      description: Hue.
+                    s:
+                      type: number
+                      description: Saturation.
+                    l:
+                      type: number
+                      description: Lightness.
+      responses:
+        '200':
+          description: |
+            "[api/game/cp/roundresult] On round end, sends the results of the round to all clients
+            When all rounds are finished it sends out the winner and game finish to all clients"
+  /players:
+    post:
+      tags:
+        - api
+      description: |
+        Emitted to all clients in a lobby when a player joins, changes character, or when general player data needs to be updated. Sends an array of player objects, each with a name and properties.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    description: The name of the player
+                  properties:
+                    type: object
+                    description: The properties of the player
+                    properties:
+                      head:
+                        type: number
+                        description: The head property of the character
+                      body:
+                        type: number
+                        description: The body property of the character
+                      face:
+                        type: number
+                        description: The face property of the character
+                      accessories:
+                        type: number
+                        description: The accessories property of the character
+      responses:
+        "200":
+          description: ""
+  /lobby-creation-confirm:
+    post:
+      tags:
+        - api
+      description: Emitted to the display client that created a lobby to confirm lobby creation and send the lobby code.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+              description: The code of the created lobby
+      responses:
+        "200":
+          description: ""
+  /gamestart:
+    post:
+      tags:
+        - api
+      description: Emitted to all clients in a lobby when a game is started to notify them of the game that started.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+              description: The name of the game that started.
+      responses:
+        "200":
+          description: ""
+  /api/game/cp/roundstart:
+    post:
+      tags:
+        - api
+      description: Emitted to all clients in a lobby when a new round of colorpicker starts and sends round details.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                colorname:
+                  type: string
+                  description: The name of the color to pick
+                color:
+                  type: object
+                  description: The color to pick represented by an object with h, s, and l properties.
+                  properties:
+                    h:
+                      type: number
+                      description: Hue.
+                    s:
+                      type: number
+                      description: Saturation.
+                    l:
+                      type: number
+                      description: Lightness.
+                time:
+                  type: number
+                  description: The time allowed to pick a color in milliseconds
+                picks:
+                  type: array
+                  description: An array of picks made by players
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        description: The id of the socket that made the pick
+                      color:
+                        type: object
+                        description: The color picked by the player represented by an object with h, s, and l properties.
+                        properties:
+                          h:
+                            type: number
+                            description: Hue.
+                          s:
+                            type: number
+                            description: Saturation.
+                          l:
+                            type: number
+                            description: Lightness.
+      responses:
+        "200":
+          description: ""
+  /api/game/cp/roundresult:
+    post:
+      tags:
+        - api
+      description: |
+        Emitted to all clients in a lobby after each colorpicker round with the results, including percentage, player names, player properties, scores and if they are the winner of the round.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  percentage:
+                    type: number
+                    description: The percentage of how close the player was to the color.
+                  name:
+                    type: string
+                    description: The name of the player
+                  properties:
+                    type: object
+                    description: The properties of the player
+                    properties:
+                      head:
+                        type: number
+                        description: The head property of the character
+                      body:
+                        type: number
+                        description: The body property of the character
+                      face:
+                        type: number
+                        description: The face property of the character
+                      accessories:
+                        type: number
+                        description: The accessories property of the character
+                  score:
+                    type: number
+                    description: The score of the player
+                  winner:
+                    type: boolean
+                    description: If the player won the round 
+      responses:
+        "200":
+          description: ""
